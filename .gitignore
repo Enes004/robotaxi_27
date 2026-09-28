@@ -5,3 +5,16 @@ __pycache__/
 .vscode/
 *.swp
 .DS_Store
+
+# C++ Derleme Çıktıları ve Geçici Dosyalar
+*.o
+*.out
+a.out
+
+# Linux / Derleme binary çıktıları
+hw1
+main
+/tasks/hw1/*/*
+!/tasks/hw1/*/*.cpp
+!/tasks/hw1/*/*.txt
+!/tasks/hw1/*/*.md
