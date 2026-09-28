@@ -1,20 +1,15 @@
 build/
 install/
 __pycache__/
-*pyc
+*.pyc
 .vscode/
 *.swp
 .DS_Store
 
-# C++ Derleme Çıktıları ve Geçici Dosyalar
+# Derleme ve Çalıştırılabilir Dosyalar
 *.o
 *.out
 a.out
-
-# Linux / Derleme binary çıktıları
 hw1
+hw1out
 main
-/tasks/hw1/*/*
-!/tasks/hw1/*/*.cpp
-!/tasks/hw1/*/*.txt
-!/tasks/hw1/*/*.md
