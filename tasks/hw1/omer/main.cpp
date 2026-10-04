@@ -170,13 +170,36 @@ private:
     int    steps_{0};
 };
 
-class TestRobot : public Robot {
+class WallFollowerRobot : public Robot {
 public: 
-    using Robot::Robot;
+    WallFollowerRobot(std::shared_ptr<const Grid> grid, double battery)
+        : Robot(std::move(grid), battery) {}
+
 protected:
     Action decide() override {
-        return Action::Forward;
+        if (justTurnedRight_) {
+            justTurnedRight_ = false;
+            return Action::Forward;
+        }
+
+        Direction rightDir = turnRight(dir_);
+        Position rightPos = moveForward(pos_, rightDir);
+
+        if (grid_->isFree(rightPos)) {
+            justTurnedRight_ = true;
+            return Action::TurnRight;
+        }
+
+        Position frontPos = moveForward(pos_, dir_);
+        if (grid_->isFree(frontPos)) {
+            return Action::Forward;
+        }
+
+        return Action::TurnLeft;
     }
+
+private:
+    bool justTurnedRight_{false};
 };
 
 int main () {
@@ -187,14 +210,23 @@ int main () {
         return 1;
     }
 
-    TestRobot robot(grid, 10.0);
-    std::cout << "Baslangic bataryasi: " << robot.battery() << "\n";
-    std::cout << "Baslangic konumu: " << robot.position().x << ", " << robot.position().y <<")\n";
-    robot.tick();
+    std::unique_ptr<Robot> robot = std::make_unique<WallFollowerRobot>(grid, 200.0);
 
-    std::cout << "\n1 Adim Sonrasi:\n";
-    std::cout << "Kalan Batarya: " << robot.battery() << " (Beklenen: 9.0)\n";
-    std::cout << "Atilan Adim (steps): " << robot.steps() << "\n";
-    std::cout << "Yeni Konum: (" << robot.position().x << ", " << robot.position().y << ")\n";
+    for (int t = 0; t < 500; ++t) {
+        if (robot->atGoal() || robot ->battery() <= 0.0) {
+            break;
+        }
+        robot -> tick();
+    }
+
+    if (robot->atGoal()) {
+        std::cout << "Hedefe ulasildi!\n";
+    }else {
+        std::cout << "Hedefe ulasilamadi!\n";
+    }
+
+    std::cout << "Toplam atilan adim: " << robot->steps() << "\n";
+    std::cout << "Kalan batarya: " << robot->battery() << "\n";
+
     return 0;
 }
