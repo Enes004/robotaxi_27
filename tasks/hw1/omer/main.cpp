@@ -2,10 +2,15 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <memory>
 
 struct Position {
     int x{0};
     int y{0};
+
+    bool operator==(const Position& other) const {
+        return x == other.x && y == other.y;
+    }
 };
 
 enum class Direction {North, East , South, West};
@@ -103,20 +108,93 @@ private:
     Position goal_{0,0};
 };
 
-int main () {
-    Grid grid;
+enum class Action {Forward, TurnLeft, TurnRight};
 
-    if (!grid.load("map1.txt")) {
-        std::cerr << "Harita yuklenirken hata olustu.\n";
+class Robot {
+public:
+        Robot(std::shared_ptr<const Grid> grid, double battery) 
+            : grid_(std::move(grid)), battery_(battery){
+            if (grid_)  {
+                pos_ = grid_->start();
+            }
+        }
+
+        virtual ~Robot() = default;
+
+        void tick() {
+            if (!grid_ || battery_ <= 0.0 || atGoal()) return;
+
+            Action act = decide();
+
+            switch (act) {
+                case Action::Forward: {
+                    battery_ -= 1.0;
+                    Position nextPos = moveForward(pos_, dir_);
+                    if(grid_->isFree(nextPos)) {
+                        pos_ = nextPos;
+                        steps_++;
+                    }
+                    break;
+                }
+                case Action::TurnLeft: {
+                    battery_ -= 0.5;
+                    dir_ = turnLeft(dir_);
+                    break;
+                }
+                case Action::TurnRight: {
+                    battery_ -= 0.5;
+                    dir_ = turnRight(dir_);
+                    break;
+                }
+            }
+
+        }
+
+        bool atGoal() const {
+            return grid_ && (pos_ == grid_->goal());
+        }
+
+        double battery() const { return battery_; }
+        int steps() const { return steps_;}
+        Position position() const { return pos_; }
+
+protected:
+    virtual Action decide() = 0;       // Saf sanal fonksiyon: Türetilen robotlar dolduracak
+
+    std::shared_ptr<const Grid> grid_; // Salt okunur paylaşılan harita
+    Position  pos_{0, 0};
+    Direction dir_{Direction::East};
+
+private:
+    double battery_{200.0};
+    int    steps_{0};
+};
+
+class TestRobot : public Robot {
+public: 
+    using Robot::Robot;
+protected:
+    Action decide() override {
+        return Action::Forward;
+    }
+};
+
+int main () {
+    auto grid = std::make_shared<Grid>();
+
+    if (!grid->load("map1.txt")){
+        std::cerr << "Harita yuklenemedi\n";
         return 1;
     }
 
-    std::cout << "Harita yuklendi!\n";
-    std::cout << "Baslangic (s): (" <<grid.start().x << ", " << grid.start().y << ")\n";
-    std::cout << "Hedef (G): (" << grid.goal().x << ", " << grid.goal().y << ")\n\n";
+    TestRobot robot(grid, 10.0);
+    std::cout << "Baslangic bataryasi: " << robot.battery() << "\n";
+    std::cout << "Baslangic konumu: " << robot.position().x << ", " << robot.position().y <<")\n";
+    robot.tick();
 
-    std::cout << "--- Harita ve Robot Konumu (S noktasinda 'R' gorunmeli) ---\n";
-    grid.print(grid.start());
-
+    std::cout << "\n1 Adim Sonrasi:\n";
+    std::cout << "Kalan Batarya: " << robot.battery() << " (Beklenen: 9.0)\n";
+    std::cout << "Atilan Adim (steps): " << robot.steps() << "\n";
+    std::cout << "Yeni Konum: (" << robot.position().x << ", " << robot.position().y << ")\n";
     return 0;
 }
