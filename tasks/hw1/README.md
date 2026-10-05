@@ -110,6 +110,7 @@ Her adımdan sonra derle, çalıştır, **commit at.**
 struct Position {
     int x{0};
     int y{0};
+    bool operator==(const Position& o) const { return x == o.x && y == o.y; }
 };
 
 enum class Direction { North, East, South, West };
